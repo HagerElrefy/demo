@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Socket.IO chat</title>
+    <style>
+        body {
+            margin: 0 auto;
+            padding-bottom: 3rem;
+            width: 50%;
+            background-color: rgba(76, 119, 175, .3) ;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        #form {
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 15px;
+            padding: 0.25rem;
+            position: absolute;
+            bottom: 5px;
+            left: 5%;
+            right: 5%;
+            display: flex;
+            height: 3rem;
+            box-sizing: border-box;
+            backdrop-filter: blur(10px);
+        }
+        #input {
+            border: none;
+            padding: 0 1rem;
+            flex-grow: 1;
+            border-radius: 2rem;
+            margin: 0.25rem;
+        }
+        #input:focus {
+            outline: none;
+        }
+        #form>button {
+            background: #4c77af;
+            border: none;
+            padding: 0 1rem;
+            margin: 0.25rem;
+            border-radius: 3px;
+            outline: none;
+            color: #fff;
+        }
+        #messages {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            padding-bottom: 50px;
+            position: absolute;
+            right: 0;
+            top: 7%;
+            left: 0;
+            bottom: 0;
+            overflow-y: scroll;
+        }
+        #messages>div>li {
+            padding: 1rem 1rem;
+            word-wrap: break-word;
+        }
+        #messages>div.right {
+            margin: 5px;
+            text-align: right;
+        }
+        #messages>div.left {
+            margin: 5px;
+            text-align: left;
+        }
+        #messages>div.right>li {
+            max-width: 85%;
+            background-color: #4c77af;
+            color: white;
+               }
+         #messages>div.left>li {
+            max-width: 85%;
+            background-color: #ddd; 
+        } 
+        #UserInfo{
+            color: white;
+            background-color: #4c77af;
+            padding: 10px;
+            border-top-right-radius: 15px;
+            border-top-left-radius: 15px;
+        }
+        .FullPageContainer{
+            background-color: white;
+            position: absolute;
+            border: #333 1px solid;
+            border-radius: 15px;
+            bottom: 5px;
+            top: 5px;
+            left: 25%;
+            right: 25%;
+            overflow:auto;
+        }
+        #UserInfo>#usrName{
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div class="FullPageContainer">  
+    <div id="UserInfo">
+        <span id="usrName">connecting with user</span>
+        <span id="typing"><sub></sub></span>
+    </div>
+    <ul id="messages"></ul>
+    <form id="form" action="">
+        <input id="input" autocomplete="off" /><button>Send</button>
+    </form>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        var socket = io();
+        var typing = document.getElementById('typing');
+        var messages = document.getElementById('messages');
+        var form = document.getElementById('form');
+        var input = document.getElementById('input');
+        var userNickname;
+        // Set the user's nickname when they join
+        do {
+            userNickname = prompt("Please enter your nickname:");
+        } while (!userNickname);
+        socket.emit('set nickname', userNickname);
+        input.addEventListener('input' , function () {
+                socket.emit('set typing message' , input.value);
+                socket.on('recieve response' , (data)=>{
+                    if(data.usrName != userNickname){
+                    
+                            typing.innerText = data.txt;
+                            // typing.innerText = data.txt
+                    }else{
+                        typing.innerText = "";
+                    }
+                })
+        })
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (input.value) {
+                socket.emit('chat message', input.value);
+                input.value = "";
+                typing.innerText = "";
+            }
+        });
+        socket.on("send message to all users", (data) => {
+            var item = document.createElement('li');
+            var endLine = document.createElement('br');
+            var tm = document.createElement('sub');
+            var container = document.createElement('div');
+            var userName = document.getElementById('usrName');
+            // Check if the message is from the current user
+            if (data.nickname === userNickname) {
+                typing.innerText = "";
+                container.classList.add('right');
+            } else {
+                userName.innerText = data.nickname;
+                container.classList.add('left');
+                typing.innerText = "";
+
+            }
+            console.log(data);
+            item.style.borderRadius = "15px";
+            item.style.padding = "10px";
+            item.style.margin = "3px";
+            item.style.display = "inline-block";
+            if((data.nickname === userNickname)){data.nickname = "YOU"}
+            item.innerText = data.nickname + ' : ' + data.message ; // + ' (' + data.timestamp + ')'
+            tm.innerText =  data.timestamp ;
+            container.appendChild(item);
+            container.appendChild(tm);
+            // messages.appendChild(item);
+            // messages.appendChild(tm);
+            // messages.appendChild(endLine);
+            messages.appendChild(container);
+            window.scrollTo(0, document.body.scrollHeight);
+        });
+    </script>
+</body>
+</html>
